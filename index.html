@@ -384,7 +384,7 @@
       if (ref === null || cmp === null) return null;
       const refMag = Math.abs(ref);
       const cmpMag = Math.abs(cmp);
-      const denom = Math.max(refMag, cmpMag, 1e-12);
+      const denom = Math.max((refMag + cmpMag) / 2, 1e-12);
       return Math.abs(cmpMag - refMag) / denom;
     }
 
@@ -709,7 +709,7 @@
       }
       lines.push('');
       lines.push('Important note:');
-      lines.push('This tool reports a bounded percent difference in average DAB staining on a 0% to 100% scale, with direction shown separately as lighter / weaker or darker / stronger. Review the QC overlays before trusting the numbers.');
+      lines.push('This tool reports the symmetric percent difference between the two mean DAB OD values, with direction shown separately as lighter / weaker or darker / stronger. Review the QC overlays before trusting the numbers.');
       return lines.join('\n');
     }
 
@@ -725,7 +725,7 @@
         '-'.repeat(40),
         '1. Background glass is excluded using a tissue mask from grayscale and saturation.',
         '2. DAB signal is measured using H-DAB color deconvolution.',
-        '3. The main result is a bounded percent difference score for average DAB staining on a 0% to 100% scale, plus direction of change.',
+        '3. The main result is the symmetric percent difference between the two mean DAB OD values, plus direction of change.',
         '',
         'IMAGE 1',
         '-'.repeat(40),
@@ -746,8 +746,8 @@
         'MAIN RESULT',
         '-'.repeat(40),
         mappedDiff === null
-          ? 'Percent difference in average DAB staining (0% to 100%): not available'
-          : `Percent difference in average DAB staining (0% to 100%): ${(mappedDiff * 100).toFixed(2)}%`,
+          ? 'Percent difference between Mean DAB OD values: not available'
+          : `Percent difference between Mean DAB OD values: ${(mappedDiff * 100).toFixed(2)}%`,
         direction === null
           ? 'Direction of change relative to Image 1: not available'
           : `Direction of change relative to Image 1: ${direction}`,
@@ -758,7 +758,7 @@
         '',
         'FORMULA',
         '-'.repeat(40),
-        'Percent difference (0% to 100%) = (| |Image 2| - |Image 1| | / max(|Image 1|, |Image 2|)) x 100',
+        'Percent difference = (|Image 2 Mean DAB OD - Image 1 Mean DAB OD| / average of the two Mean DAB OD values) x 100',
         'Direction is reported separately as lighter / weaker or darker / stronger.',
         '',
         'CAUTION',
@@ -787,7 +787,7 @@
 
         state.report = buildReport(a1, a2, direction, mappedDiff);
         reportEl.value = state.report;
-        setStatus('Analysis complete. Review the QC overlays.');
+        setStatus(`Analysis complete. Review the QC overlays. Mean DAB difference: ${(mappedDiff * 100).toFixed(2)}%`);
       } catch (err) {
         console.error(err);
         alert(err.message || 'Analysis failed.');
