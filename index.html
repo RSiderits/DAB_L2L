@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DAB_L2L Comparator - Brown Threshold</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --border: #b8c2cc;
+    --text: #1f2933;
+    --muted: #52606d;
+    --accent: #1f6feb;
+    --accent2: #e6f0ff;
+    --warn: #fff4d6;
+    --warnborder: #d6a100;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 18px;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  h1 { margin: 0 0 8px 0; font-size: 22px; }
+  h2 { margin: 0 0 10px 0; font-size: 17px; }
+  h3 { margin: 14px 0 8px 0; font-size: 15px; }
+  p { margin: 6px 0; line-height: 1.35; }
+
+  .top-note {
+    max-width: 1260px;
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: minmax(780px, 1fr) minmax(430px, 560px);
+    gap: 14px;
+    max-width: 1520px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  .drop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .drop-zone {
+    min-height: 138px;
+    border: 2px dashed #8aa4bf;
+    border-radius: 10px;
+    background: #f8fbff;
+    padding: 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent2);
+  }
+
+  .drop-title { font-weight: bold; font-size: 15px; }
+  .drop-subtitle { font-size: 12px; color: var(--muted); word-break: break-word; }
+  .file-input { margin: 0 auto; max-width: 95%; }
+
+  .threshold-panel, .camera-panel {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #fbfcfd;
+  }
+
+  .threshold-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #b8c2cc;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .threshold-help { line-height: 1.35; }
+
+  .camera-controls, .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+  }
+
+  #cameraStage {
+    position: relative;
+    width: 100%;
+    max-height: 420px;
+    margin-top: 8px;
+    display: none;
+    border: 1px solid #d6dbe1;
+    border-radius: 8px;
+    background: #111;
+    overflow: hidden;
+  }
+
+  #liveVideo {
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    display: block;
+    background: #111;
+  }
+
+  #liveRoiCanvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+
+  .preview-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .preview-card {
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fbfcfd;
+  }
+
+  .preview-card canvas {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border: 1px solid #d6dbe1;
+    background: #fff;
+  }
+
+  .preview-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  button {
+    border: 1px solid #8ba4bd;
+    background: #ffffff;
+    border-radius: 7px;
+    padding: 8px 11px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: bold;
+  }
+
+  button:hover { filter: brightness(0.96); }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .status {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccd6e0;
+    background: #f7fafc;
+    font-size: 13px;
+  }
+
+  .summary-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 760px;
+    font-size: 12.5px;
+  }
+
+  th, td {
+    border-bottom: 1px solid #d8dee4;
+    border-right: 1px solid #e4e8ed;
+    padding: 7px 8px;
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+
+  th:first-child, td:first-child { text-align: left; }
+  th:last-child, td:last-child { border-right: none; }
+  tr:last-child td { border-bottom: none; }
+  th { background: #edf2f7; font-weight: bold; }
+
+  .callout {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--warnborder);
+    background: var(--warn);
+    font-size: 13px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .metric {
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 9px;
+    background: #fbfcfd;
+  }
+
+  .metric .name { font-size: 12px; color: var(--muted); }
+  .metric .value { font-size: 18px; font-weight: bold; margin-top: 3px; }
+
+  .qc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .qc-card {
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 7px;
+    background: #fbfcfd;
+  }
+
+  .qc-card canvas {
+    width: 100%;
+    max-height: 230px;
+    object-fit: contain;
+    border: 1px solid #d6dbe1;
+    background: #fff;
+  }
+
+  .small-text { font-size: 12px; color: var(--muted); }
+  #hiddenReport { display: none; }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 7px;
+    font-size: 11.5px;
+  }
+
+  .legend span {
+    border: 1px solid #d0d7de;
+    border-radius: 5px;
+    padding: 4px 5px;
+    background: #fff;
+    text-align: center;
+  }
+
+  @media (max-width: 1120px) {
+    .app-grid { grid-template-columns: 1fr; }
+    .drop-grid, .preview-row, .qc-grid, .threshold-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <h1>DAB_L2L Comparator</h1>
+  <div class="top-note">
+    Two-image DAB lot-to-lot comparator. Image 1 is the reference lot and Image 2 is the candidate/new lot. Weak, moderate, and strong require brown DAB signal; blue hematoxylin-only pixels are excluded.
+  </div>
+
+  <div class="app-grid">
+    <section class="panel">
+      <h2>Image Input</h2>
+      <div class="drop-grid">
+        <div class="drop-zone" id="drop1">
+          <div class="drop-title">Image 1 / Reference Lot</div>
+          <div class="drop-subtitle">Drag and drop image or choose file</div>
+          <input class="file-input" type="file" id="file1" accept="image/*" />
+          <div class="drop-subtitle" id="name1">No image loaded</div>
+        </div>
+        <div class="drop-zone" id="drop2">
+          <div class="drop-title">Image 2 / Candidate Lot</div>
+          <div class="drop-subtitle">Drag and drop image or choose file</div>
+          <input class="file-input" type="file" id="file2" accept="image/*" />
+          <div class="drop-subtitle" id="name2">No image loaded</div>
+        </div>
+      </div>
+
+      <div class="threshold-panel">
+        <h3>Brown DAB Detection Threshold</h3>
+        <div class="threshold-grid">
+          <div class="field">
+            <label for="lowBrownThreshold">Low-intensity brown threshold</label>
+            <input id="lowBrownThreshold" type="number" step="0.001" value="0.080" />
+          </div>
+          <div class="small-text threshold-help">
+            Pixels must exceed this brown-DAB threshold to be included as weak, moderate, or strong staining. Blue hematoxylin-only pixels are excluded. Increase if weak is still contaminated by blue; decrease if true faint brown is missed.
+          </div>
+        </div>
+      </div>
+
+      <div class="camera-panel">
+        <h3>Live Microscope Camera Capture</h3>
+        <div class="camera-controls">
+          <button id="connectCameraBtn">Connect Camera</button>
+          <button id="captureImage1Btn" disabled>Capture to Image 1</button>
+          <button id="captureImage2Btn" disabled>Capture to Image 2</button>
+          <button id="disconnectCameraBtn" disabled>Disconnect Camera</button>
+        </div>
+        <div class="small-text">Use Chrome or Edge. Lock exposure, gain, gamma, and white balance in the camera software/driver before comparing DAB intensity.</div>
+        <div id="cameraStage">
+          <video id="liveVideo" autoplay playsinline muted></video>
+          <canvas id="liveRoiCanvas"></canvas>
+        </div>
+        <div class="camera-controls">
+          <button id="clearLiveRoiBtn" disabled>Clear Live ROI</button>
+          <span class="small-text">Draw a rectangle directly on the live preview. Capture uses only that ROI. If no ROI is drawn, the full live frame is captured.</span>
+        </div>
+      </div>
+
+      <div class="preview-row">
+        <div class="preview-card"><div class="preview-label">Image 1 Preview</div><canvas id="preview1"></canvas></div>
+        <div class="preview-card"><div class="preview-label">Image 2 Preview</div><canvas id="preview2"></canvas></div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="analyzeBtn">Calculate</button>
+        <button id="copyBtn" disabled>Copy Report</button>
+        <button id="exportBtn" disabled>Export Report</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+
+      <div class="status" id="statusBox">Load or capture two images, then press Calculate.</div>
+    </section>
+
+    <section class="panel result-panel">
+      <h2>RESULT</h2>
+
+      <div class="metric-grid">
+        <div class="metric"><div class="name">Image 1 Mean DAB OD</div><div class="value" id="overall1">--</div></div>
+        <div class="metric"><div class="name">Image 2 Mean DAB OD</div><div class="value" id="overall2">--</div></div>
+        <div class="metric"><div class="name">Overall Percent Difference</div><div class="value" id="overallDiff">--</div></div>
+        <div class="metric"><div class="name">Overall Direction</div><div class="value" id="overallDirection">--</div></div>
+      </div>
+
+      <h3>Structured Summary</h3>
+      <div class="summary-table-wrap">
+        <table id="bucketTable">
+          <thead>
+            <tr>
+              <th>Bucket</th>
+              <th>Image 1 Mean OD</th>
+              <th>Image 2 Mean OD</th>
+              <th>Intensity % Diff</th>
+              <th>Image 1 Area %</th>
+              <th>Image 2 Area %</th>
+              <th>Area Delta</th>
+              <th>Direction</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Weak</td><td id="weakMean1">--</td><td id="weakMean2">--</td><td id="weakDiff">--</td><td id="weakArea1">--</td><td id="weakArea2">--</td><td id="weakAreaDelta">--</td><td id="weakDirection">--</td></tr>
+            <tr><td>Moderate</td><td id="moderateMean1">--</td><td id="moderateMean2">--</td><td id="moderateDiff">--</td><td id="moderateArea1">--</td><td id="moderateArea2">--</td><td id="moderateAreaDelta">--</td><td id="moderateDirection">--</td></tr>
+            <tr><td>Strong</td><td id="strongMean1">--</td><td id="strongMean2">--</td><td id="strongDiff">--</td><td id="strongArea1">--</td><td id="strongArea2">--</td><td id="strongAreaDelta">--</td><td id="strongDirection">--</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout" id="greatestBucket">Greatest bucket-level intensity difference: --</div>
+      <div class="callout" id="greatestAreaChange">Most significant percentage-area change: --</div>
+
+      <h3>QC Preview</h3>
+      <div class="small-text">Overlay colors: weak / moderate / strong. Blue hematoxylin-only and below-threshold pixels are excluded.</div>
+      <div class="legend"><span>Weak = pale blue</span><span>Moderate = orange</span><span>Strong = red</span></div>
+      <div class="qc-grid">
+        <div class="qc-card"><div class="preview-label">Image 1 QC Overlay</div><canvas id="qc1"></canvas></div>
+        <div class="qc-card"><div class="preview-label">Image 2 QC Overlay</div><canvas id="qc2"></canvas></div>
+      </div>
+
+      <div class="field" style="margin-top: 10px;">
+        <label for="markerField">Marker</label>
+        <input id="markerField" type="text" />
+      </div>
+    </section>
+  </div>
+
+  <textarea id="hiddenReport"></textarea>
+
+<script>
+(function () {
+  const state = {
+    image1: null,
+    image2: null,
+    fileName1: "Image 1",
+    fileName2: "Image 2",
+    lastReport: "",
+    liveStream: null,
+    liveRoi: null,
+    liveRoiDrawing: false,
+    liveRoiStart: null
+  };
+
+  const ids = id => document.getElementById(id);
+
+  const file1 = ids("file1");
+  const file2 = ids("file2");
+  const drop1 = ids("drop1");
+  const drop2 = ids("drop2");
+  const analyzeBtn = ids("analyzeBtn");
+  const copyBtn = ids("copyBtn");
+  const exportBtn = ids("exportBtn");
+  const resetBtn = ids("resetBtn");
+  const lowBrownThresholdInput = ids("lowBrownThreshold");
+
+  const connectCameraBtn = ids("connectCameraBtn");
+  const captureImage1Btn = ids("captureImage1Btn");
+  const captureImage2Btn = ids("captureImage2Btn");
+  const disconnectCameraBtn = ids("disconnectCameraBtn");
+  const clearLiveRoiBtn = ids("clearLiveRoiBtn");
+  const liveVideo = ids("liveVideo");
+  const cameraStage = ids("cameraStage");
+  const liveRoiCanvas = ids("liveRoiCanvas");
+
+  file1.addEventListener("change", e => loadFile(e.target.files[0], 1));
+  file2.addEventListener("change", e => loadFile(e.target.files[0], 2));
+  analyzeBtn.addEventListener("click", analyze);
+  copyBtn.addEventListener("click", copyReport);
+  exportBtn.addEventListener("click", exportReport);
+  resetBtn.addEventListener("click", resetAll);
+
+  connectCameraBtn.addEventListener("click", connectCamera);
+  captureImage1Btn.addEventListener("click", () => captureToSlot(1));
+  captureImage2Btn.addEventListener("click", () => captureToSlot(2));
+  disconnectCameraBtn.addEventListener("click", disconnectCamera);
+  clearLiveRoiBtn.addEventListener("click", clearLiveRoi);
+
+  liveRoiCanvas.addEventListener("mousedown", startLiveRoi);
+  liveRoiCanvas.addEventListener("mousemove", moveLiveRoi);
+  liveRoiCanvas.addEventListener("mouseup", endLiveRoi);
+  liveRoiCanvas.addEventListener("mouseleave", endLiveRoi);
+  window.addEventListener("resize", drawLiveRoiOverlay);
+
+  setupDrop(drop1, 1);
+  setupDrop(drop2, 2);
+
+  function setupDrop(zone, index) {
+    ["dragenter", "dragover"].forEach(evt => {
+      zone.addEventListener(evt, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.add("dragover");
+      });
+    });
+    ["dragleave", "drop"].forEach(evt => {
+      zone.addEventListener(evt, e => {
+        e.preventDefault();
+        e.stopPropagation();
+        zone.classList.remove("dragover");
+      });
+    });
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      loadFile(file, index);
+    });
+  }
+
+  function loadFile(file, index) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setStatus("Please load an image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const img = new Image();
+      img.onload = function () {
+        if (index === 1) {
+          state.image1 = img;
+          state.fileName1 = file.name || "Image 1";
+          ids("name1").textContent = state.fileName1;
+          drawPreview(img, ids("preview1"));
+        } else {
+          state.image2 = img;
+          state.fileName2 = file.name || "Image 2";
+          ids("name2").textContent = state.fileName2;
+          drawPreview(img, ids("preview2"));
+        }
+        setStatus("Image loaded. Load both images, then press Calculate.");
+      };
+      img.onerror = function () { setStatus("Could not read that image file."); };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function connectCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus("This browser does not support direct camera capture. Use Chrome or Edge, or import saved images.");
+      return;
+    }
+    try {
+      if (state.liveStream) disconnectCamera(false);
+      state.liveStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "environment" },
+        audio: false
+      });
+      liveVideo.srcObject = state.liveStream;
+      cameraStage.style.display = "block";
+      liveVideo.onloadedmetadata = function () {
+        resizeLiveRoiCanvas();
+        drawLiveRoiOverlay();
+      };
+      captureImage1Btn.disabled = false;
+      captureImage2Btn.disabled = false;
+      disconnectCameraBtn.disabled = false;
+      clearLiveRoiBtn.disabled = false;
+      connectCameraBtn.textContent = "Reconnect Camera";
+      setStatus("Camera connected. Draw a live ROI if desired, then capture to Image 1 or Image 2.");
+    } catch (err) {
+      setStatus("Camera connection failed: " + (err.message || err) + ". Check browser permission and whether Windows sees the OMAX/Amscope camera or ManyCam feed.");
+    }
+  }
+
+  function disconnectCamera(showStatus = true) {
+    if (state.liveStream) {
+      state.liveStream.getTracks().forEach(track => track.stop());
+      state.liveStream = null;
+    }
+    liveVideo.srcObject = null;
+    cameraStage.style.display = "none";
+    state.liveRoi = null;
+    drawLiveRoiOverlay();
+    captureImage1Btn.disabled = true;
+    captureImage2Btn.disabled = true;
+    disconnectCameraBtn.disabled = true;
+    clearLiveRoiBtn.disabled = true;
+    connectCameraBtn.textContent = "Connect Camera";
+    if (showStatus) setStatus("Camera disconnected.");
+  }
+
+  function captureToSlot(slot) {
+    if (!state.liveStream || !liveVideo.videoWidth || !liveVideo.videoHeight) {
+      setStatus("No live camera frame is available yet. Connect the camera and wait for the preview to appear.");
+      return;
+    }
+    const source = liveRoiToVideoPixels();
+    const captureCanvas = document.createElement("canvas");
+    captureCanvas.width = source.w;
+    captureCanvas.height = source.h;
+    const ctx = captureCanvas.getContext("2d");
+    ctx.drawImage(liveVideo, source.x, source.y, source.w, source.h, 0, 0, source.w, source.h);
+
+    const img = new Image();
+    img.onload = function () {
+      const timestamp = new Date().toLocaleString();
+      if (slot === 1) {
+        state.image1 = img;
+        state.fileName1 = "Camera capture Image 1 - " + timestamp;
+        ids("name1").textContent = state.fileName1;
+        drawPreview(img, ids("preview1"));
+      } else {
+        state.image2 = img;
+        state.fileName2 = "Camera capture Image 2 - " + timestamp;
+        ids("name2").textContent = state.fileName2;
+        drawPreview(img, ids("preview2"));
+      }
+      setStatus("Captured live microscope image to Image " + slot + (state.liveRoi ? " using the live ROI." : " using the full live frame."));
+    };
+    img.src = captureCanvas.toDataURL("image/png");
+  }
+
+  function resizeLiveRoiCanvas() {
+    if (!cameraStage || cameraStage.style.display === "none") return;
+    const rect = cameraStage.getBoundingClientRect();
+    liveRoiCanvas.width = Math.max(1, Math.round(rect.width));
+    liveRoiCanvas.height = Math.max(1, Math.round(rect.height));
+  }
+
+  function liveMouse(evt) {
+    resizeLiveRoiCanvas();
+    const rect = liveRoiCanvas.getBoundingClientRect();
+    return {
+      x: (evt.clientX - rect.left) * (liveRoiCanvas.width / rect.width),
+      y: (evt.clientY - rect.top) * (liveRoiCanvas.height / rect.height)
+    };
+  }
+
+  function startLiveRoi(evt) {
+    if (!state.liveStream) return;
+    state.liveRoiDrawing = true;
+    state.liveRoiStart = liveMouse(evt);
+    state.liveRoi = { x: state.liveRoiStart.x, y: state.liveRoiStart.y, w: 0, h: 0 };
+    drawLiveRoiOverlay();
+  }
+
+  function moveLiveRoi(evt) {
+    if (!state.liveRoiDrawing) return;
+    const p = liveMouse(evt);
+    state.liveRoi = normalizeLiveRect(state.liveRoiStart.x, state.liveRoiStart.y, p.x - state.liveRoiStart.x, p.y - state.liveRoiStart.y);
+    drawLiveRoiOverlay();
+  }
+
+  function endLiveRoi() {
+    if (!state.liveRoiDrawing) return;
+    state.liveRoiDrawing = false;
+    if (state.liveRoi && (state.liveRoi.w < 12 || state.liveRoi.h < 12)) {
+      state.liveRoi = null;
+      setStatus("Live ROI was too small and was cleared. Draw a larger rectangle around the tissue.");
+    } else if (state.liveRoi) {
+      setStatus("Live ROI selected. Capture to Image 1 or Image 2 will use only the selected tissue region.");
+    }
+    drawLiveRoiOverlay();
+  }
+
+  function normalizeLiveRect(x, y, w, h) {
+    const nx = w < 0 ? x + w : x;
+    const ny = h < 0 ? y + h : y;
+    return {
+      x: Math.max(0, nx),
+      y: Math.max(0, ny),
+      w: Math.min(Math.abs(w), liveRoiCanvas.width - Math.max(0, nx)),
+      h: Math.min(Math.abs(h), liveRoiCanvas.height - Math.max(0, ny))
+    };
+  }
+
+  function drawLiveRoiOverlay() {
+    if (!liveRoiCanvas) return;
+    resizeLiveRoiCanvas();
+    const ctx = liveRoiCanvas.getContext("2d");
+    ctx.clearRect(0, 0, liveRoiCanvas.width || 1, liveRoiCanvas.height || 1);
+    if (!state.liveRoi) return;
+    const r = state.liveRoi;
+    ctx.save();
+    ctx.fillStyle = "rgba(31,111,235,0.12)";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = "#1f6feb";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 5]);
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(r.x, Math.max(0, r.y - 22), 160, 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "12px Arial";
+    ctx.fillText("Live capture ROI", r.x + 6, Math.max(13, r.y - 7));
+    ctx.restore();
+  }
+
+  function clearLiveRoi() {
+    state.liveRoi = null;
+    drawLiveRoiOverlay();
+    setStatus("Live ROI cleared. Captures will use the full live camera frame.");
+  }
+
+  function liveRoiToVideoPixels() {
+    const vw = liveVideo.videoWidth;
+    const vh = liveVideo.videoHeight;
+    if (!state.liveRoi) return { x: 0, y: 0, w: vw, h: vh };
+    resizeLiveRoiCanvas();
+    const stageW = liveRoiCanvas.width;
+    const stageH = liveRoiCanvas.height;
+    const videoAspect = vw / vh;
+    const stageAspect = stageW / stageH;
+    let displayW, displayH, offsetX, offsetY;
+    if (videoAspect > stageAspect) {
+      displayW = stageW;
+      displayH = stageW / videoAspect;
+      offsetX = 0;
+      offsetY = (stageH - displayH) / 2;
+    } else {
+      displayH = stageH;
+      displayW = stageH * videoAspect;
+      offsetX = (stageW - displayW) / 2;
+      offsetY = 0;
+    }
+    const r = state.liveRoi;
+    const x0 = Math.max(offsetX, r.x);
+    const y0 = Math.max(offsetY, r.y);
+    const x1 = Math.min(offsetX + displayW, r.x + r.w);
+    const y1 = Math.min(offsetY + displayH, r.y + r.h);
+    if (x1 <= x0 || y1 <= y0) return { x: 0, y: 0, w: vw, h: vh };
+    const vx = Math.round(((x0 - offsetX) / displayW) * vw);
+    const vy = Math.round(((y0 - offsetY) / displayH) * vh);
+    const vW = Math.round(((x1 - x0) / displayW) * vw);
+    const vH = Math.round(((y1 - y0) / displayH) * vh);
+    return {
+      x: Math.max(0, Math.min(vw - 1, vx)),
+      y: Math.max(0, Math.min(vh - 1, vy)),
+      w: Math.max(1, Math.min(vw - vx, vW)),
+      h: Math.max(1, Math.min(vh - vy, vH))
+    };
+  }
+
+  function drawPreview(img, canvas) {
+    const maxW = 680;
+    const maxH = 360;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  }
+
+  function readLowBrownThreshold() {
+    const v = parseFloat(lowBrownThresholdInput.value);
+    if (!isFinite(v) || v < 0) {
+      setStatus("Low-intensity brown threshold must be a non-negative number.");
+      return null;
+    }
+    return v;
+  }
+
+  function analyze() {
+    if (!state.image1 || !state.image2) {
+      setStatus("Load or capture both images before calculating. The software is not psychic.");
+      return;
+    }
+
+    const lowBrownThreshold = readLowBrownThreshold();
+    if (lowBrownThreshold === null) return;
+
+    setStatus("Analyzing brown DAB-positive pixels...");
+
+    const analysis1 = getDabPixels(state.image1, lowBrownThreshold);
+    const analysis2 = getDabPixels(state.image2, lowBrownThreshold);
+
+    if (analysis1.values.length < 100 || analysis2.values.length < 100) {
+      setStatus("Too few brown DAB-positive pixels detected. Check image quality, field selection, or lower the low-intensity brown threshold.");
+      return;
+    }
+
+    const combined = analysis1.values.concat(analysis2.values).sort((a, b) => a - b);
+    const thresholds = deriveThresholds(combined);
+
+    const result1 = summarizeBuckets(analysis1.values, thresholds);
+    const result2 = summarizeBuckets(analysis2.values, thresholds);
+
+    const overall1 = mean(analysis1.values);
+    const overall2 = mean(analysis2.values);
+    const overallDiff = percentDifference(overall1, overall2);
+    const overallDirection = direction(overall1, overall2);
+
+    updateMetrics(overall1, overall2, overallDiff, overallDirection);
+    updateBucketTable(result1, result2);
+    updateGreatestBucket(result1, result2);
+    updateGreatestAreaChange(result1, result2);
+
+    drawOverlay(state.image1, ids("qc1"), thresholds, lowBrownThreshold);
+    drawOverlay(state.image2, ids("qc2"), thresholds, lowBrownThreshold);
+
+    const report = buildReport({ overall1, overall2, overallDiff, overallDirection, result1, result2, thresholds, lowBrownThreshold });
+    state.lastReport = report;
+    ids("hiddenReport").value = report;
+    copyBtn.disabled = false;
+    exportBtn.disabled = false;
+
+    setStatus("Analysis complete. Brown-only threshold applied. Overall mean DAB OD difference: " + fmtPct(overallDiff) + "; Image 2 is " + overallDirection + " than Image 1.");
+  }
+
+  function getDabPixels(img, lowBrownThreshold) {
+    const maxDim = 1200;
+    const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    const values = [];
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      if (a < 20) continue;
+      const brightness = (r + g + b) / 3;
+      const saturation = max3(r, g, b) - min3(r, g, b);
+      if (brightness > 238 && saturation < 18) continue;
+      if (brightness < 18) continue;
+      const dabInfo = dabODInfo(r, g, b);
+      if (dabInfo.brownSignal >= lowBrownThreshold) values.push(dabInfo.od);
+    }
+    return { values };
+  }
+
+  function dabODInfo(r, g, b) {
+    const rn = Math.max(r, 1) / 255;
+    const gn = Math.max(g, 1) / 255;
+    const bn = Math.max(b, 1) / 255;
+    const odR = -Math.log(rn);
+    const odG = -Math.log(gn);
+    const odB = -Math.log(bn);
+    const brownBias = Math.max(0, odB - (odR * 0.55));
+    const blueDominancePenalty = b > r && b > g ? Math.min(0.75, (b - Math.max(r, g)) / 255) : 0;
+    const brownChromaticity = Math.max(0, (r + g - (1.55 * b)) / 255);
+    const brownSignal = Math.max(0, brownBias + brownChromaticity - blueDominancePenalty);
+    const od = Math.max(0, (0.28 * odR) + (0.45 * odG) + (0.27 * odB) + (0.25 * brownBias));
+    return { od, brownSignal };
+  }
+
+  function deriveThresholds(sorted) {
+    return {
+      negativeWeak: percentile(sorted, 0.25),
+      weakModerate: percentile(sorted, 0.55),
+      moderateStrong: percentile(sorted, 0.82)
+    };
+  }
+
+  function summarizeBuckets(values, thresholds) {
+    const buckets = { weak: [], moderate: [], strong: [] };
+    for (const v of values) {
+      if (v < thresholds.negativeWeak) buckets.weak.push(v);
+      else if (v < thresholds.weakModerate) buckets.weak.push(v);
+      else if (v < thresholds.moderateStrong) buckets.moderate.push(v);
+      else buckets.strong.push(v);
+    }
+    const total = values.length || 1;
+    return {
+      weak: bucketStats(buckets.weak, total),
+      moderate: bucketStats(buckets.moderate, total),
+      strong: bucketStats(buckets.strong, total)
+    };
+  }
+
+  function bucketStats(arr, total) {
+    return { n: arr.length, mean: arr.length ? mean(arr) : null, areaPct: (arr.length / total) * 100 };
+  }
+
+  function updateMetrics(overall1, overall2, diff, dir) {
+    ids("overall1").textContent = fmt(overall1);
+    ids("overall2").textContent = fmt(overall2);
+    ids("overallDiff").textContent = fmtPct(diff);
+    ids("overallDirection").textContent = dir;
+  }
+
+  function updateBucketTable(r1, r2) {
+    updateRow("weak", r1.weak, r2.weak);
+    updateRow("moderate", r1.moderate, r2.moderate);
+    updateRow("strong", r1.strong, r2.strong);
+  }
+
+  function updateRow(name, b1, b2) {
+    const diff = percentDifferenceNullable(b1.mean, b2.mean);
+    const areaDelta = b2.areaPct - b1.areaPct;
+    const dir = directionNullable(b1.mean, b2.mean);
+    ids(name + "Mean1").textContent = fmtNullable(b1.mean);
+    ids(name + "Mean2").textContent = fmtNullable(b2.mean);
+    ids(name + "Diff").textContent = fmtPctNullable(diff);
+    ids(name + "Area1").textContent = fmtPct(b1.areaPct);
+    ids(name + "Area2").textContent = fmtPct(b2.areaPct);
+    ids(name + "AreaDelta").textContent = signedPct(areaDelta);
+    ids(name + "Direction").textContent = dir;
+  }
+
+  function updateGreatestBucket(r1, r2) {
+    const rows = [
+      { label: "Weak", diff: percentDifferenceNullable(r1.weak.mean, r2.weak.mean), b1: r1.weak, b2: r2.weak },
+      { label: "Moderate", diff: percentDifferenceNullable(r1.moderate.mean, r2.moderate.mean), b1: r1.moderate, b2: r2.moderate },
+      { label: "Strong", diff: percentDifferenceNullable(r1.strong.mean, r2.strong.mean), b1: r1.strong, b2: r2.strong }
+    ].filter(x => x.diff !== null && isFinite(x.diff));
+    if (!rows.length) {
+      ids("greatestBucket").textContent = "Greatest bucket-level intensity difference: not available.";
+      return;
+    }
+    rows.sort((a, b) => b.diff - a.diff);
+    const top = rows[0];
+    ids("greatestBucket").textContent = "Greatest bucket-level intensity difference: " + top.label + " (" + fmtPct(top.diff) + "; Image 2 is " + directionNullable(top.b1.mean, top.b2.mean) + " than Image 1).";
+  }
+
+  function updateGreatestAreaChange(r1, r2) {
+    const rows = [
+      { label: "Weak", delta: r2.weak.areaPct - r1.weak.areaPct },
+      { label: "Moderate", delta: r2.moderate.areaPct - r1.moderate.areaPct },
+      { label: "Strong", delta: r2.strong.areaPct - r1.strong.areaPct }
+    ];
+    rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    const top = rows[0];
+    const directionText = top.delta > 0 ? "increased in Image 2" : top.delta < 0 ? "decreased in Image 2" : "unchanged";
+    ids("greatestAreaChange").textContent = "Most significant percentage-area change: " + top.label + " (" + signedPct(top.delta) + "; " + directionText + ").";
+  }
+
+  function drawOverlay(img, canvas, thresholds, lowBrownThreshold) {
+    const maxW = 520;
+    const maxH = 360;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, w, h);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i];
+      const g = d[i + 1];
+      const b = d[i + 2];
+      const brightness = (r + g + b) / 3;
+      const saturation = max3(r, g, b) - min3(r, g, b);
+      if (brightness > 238 && saturation < 18) continue;
+      if (brightness < 18) continue;
+      const dabInfo = dabODInfo(r, g, b);
+      if (dabInfo.brownSignal < lowBrownThreshold) continue;
+      const v = dabInfo.od;
+      if (v < thresholds.weakModerate) blend(d, i, 90, 170, 255, 0.42);
+      else if (v < thresholds.moderateStrong) blend(d, i, 255, 165, 0, 0.45);
+      else blend(d, i, 220, 40, 40, 0.48);
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  function blend(d, i, rr, gg, bb, alpha) {
+    d[i] = Math.round((1 - alpha) * d[i] + alpha * rr);
+    d[i + 1] = Math.round((1 - alpha) * d[i + 1] + alpha * gg);
+    d[i + 2] = Math.round((1 - alpha) * d[i + 2] + alpha * bb);
+  }
+
+  function buildReport(obj) {
+    const lines = [];
+    lines.push("DAB_L2L LOT-TO-LOT COMPARISON REPORT");
+    lines.push("========================================");
+    lines.push("Generated: " + new Date().toLocaleString());
+    lines.push("Image 1 / Reference Lot: " + state.fileName1);
+    lines.push("Image 2 / Candidate Lot: " + state.fileName2);
+    lines.push("");
+    lines.push("BROWN DAB INCLUSION THRESHOLD");
+    lines.push("----------------------------------------");
+    lines.push("Low-intensity brown threshold: " + fmt(obj.lowBrownThreshold));
+    lines.push("Pixels below this brown-DAB threshold were excluded, including blue hematoxylin-only pixels.");
+    lines.push("");
+    lines.push("OVERALL DAB OPTICAL DENSITY");
+    lines.push("----------------------------------------");
+    lines.push("Image 1 Mean DAB OD: " + fmt(obj.overall1));
+    lines.push("Image 2 Mean DAB OD: " + fmt(obj.overall2));
+    lines.push("Overall percent difference: " + fmtPct(obj.overallDiff));
+    lines.push("Overall direction: Image 2 is " + obj.overallDirection + " than Image 1.");
+    lines.push("");
+    lines.push("STRUCTURED SUMMARY: WEAK / MODERATE / STRONG ONLY");
+    lines.push("----------------------------------------");
+    lines.push(rowText("Weak", obj.result1.weak, obj.result2.weak));
+    lines.push(rowText("Moderate", obj.result1.moderate, obj.result2.moderate));
+    lines.push(rowText("Strong", obj.result1.strong, obj.result2.strong));
+    lines.push("");
+    lines.push(greatestText(obj.result1, obj.result2));
+    lines.push(greatestAreaText(obj.result1, obj.result2));
+    lines.push("");
+    lines.push("COMMON THRESHOLDS USED INTERNALLY");
+    lines.push("----------------------------------------");
+    lines.push("Weak/Moderate cutoff: " + fmt(obj.thresholds.weakModerate));
+    lines.push("Moderate/Strong cutoff: " + fmt(obj.thresholds.moderateStrong));
+    lines.push("");
+    lines.push("Important note:");
+    lines.push("The comparison first excludes blue hematoxylin-only pixels and pixels below the low-intensity brown threshold. Remaining brown DAB-positive pixels are assigned to weak/moderate/strong thresholds derived from the combined DAB OD distribution of both images. Review the QC overlays before trusting the numbers.");
+    lines.push("");
+    lines.push("FORMULAS");
+    lines.push("----------------------------------------");
+    lines.push("Overall percent difference = (|Image 2 Mean DAB OD - Image 1 Mean DAB OD| / average of the two Mean DAB OD values) x 100");
+    lines.push("Bucket intensity percent difference uses the same formula, but compares the mean DAB OD within that bucket only.");
+    lines.push("Area delta = Image 2 bucket tissue fraction - Image 1 bucket tissue fraction.");
+    lines.push("Direction is reported separately as lighter / weaker or darker / stronger.");
+    lines.push("");
+    lines.push("CAUTION");
+    lines.push("----------------------------------------");
+    lines.push("This is a practical browser implementation for relative research comparison. It is not a validated clinical pathology platform.");
+    return lines.join("\n");
+  }
+
+  function rowText(label, b1, b2) {
+    const diff = percentDifferenceNullable(b1.mean, b2.mean);
+    const areaDelta = b2.areaPct - b1.areaPct;
+    return label + ": Image 1 mean OD " + fmtNullable(b1.mean) + "; Image 2 mean OD " + fmtNullable(b2.mean) + "; intensity difference " + fmtPctNullable(diff) + "; Image 1 area " + fmtPct(b1.areaPct) + "; Image 2 area " + fmtPct(b2.areaPct) + "; area delta " + signedPct(areaDelta) + "; direction " + directionNullable(b1.mean, b2.mean) + ".";
+  }
+
+  function greatestText(r1, r2) {
+    const rows = [
+      { label: "Weak", diff: percentDifferenceNullable(r1.weak.mean, r2.weak.mean), b1: r1.weak, b2: r2.weak },
+      { label: "Moderate", diff: percentDifferenceNullable(r1.moderate.mean, r2.moderate.mean), b1: r1.moderate, b2: r2.moderate },
+      { label: "Strong", diff: percentDifferenceNullable(r1.strong.mean, r2.strong.mean), b1: r1.strong, b2: r2.strong }
+    ].filter(x => x.diff !== null && isFinite(x.diff));
+    if (!rows.length) return "Greatest bucket-level intensity difference: not available.";
+    rows.sort((a, b) => b.diff - a.diff);
+    const top = rows[0];
+    return "Greatest bucket-level intensity difference: " + top.label + " (" + fmtPct(top.diff) + "; Image 2 is " + directionNullable(top.b1.mean, top.b2.mean) + " than Image 1).";
+  }
+
+  function greatestAreaText(r1, r2) {
+    const rows = [
+      { label: "Weak", delta: r2.weak.areaPct - r1.weak.areaPct },
+      { label: "Moderate", delta: r2.moderate.areaPct - r1.moderate.areaPct },
+      { label: "Strong", delta: r2.strong.areaPct - r1.strong.areaPct }
+    ];
+    rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    const top = rows[0];
+    const directionText = top.delta > 0 ? "increased in Image 2" : top.delta < 0 ? "decreased in Image 2" : "unchanged";
+    return "Most significant percentage-area change: " + top.label + " (" + signedPct(top.delta) + "; " + directionText + ").";
+  }
+
+  async function copyReport() {
+    if (!state.lastReport) return;
+    try {
+      await navigator.clipboard.writeText(state.lastReport);
+      alert("Report copied:\n\n" + state.lastReport);
+    } catch (err) {
+      ids("hiddenReport").style.display = "block";
+      ids("hiddenReport").select();
+      document.execCommand("copy");
+      ids("hiddenReport").style.display = "none";
+      alert("Report copied. Clipboard fallback used.");
+    }
+  }
+
+  function exportReport() {
+    if (!state.lastReport) return;
+    const blob = new Blob([state.lastReport], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "DAB_L2L_brown_threshold_report.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function resetAll() {
+    disconnectCamera(false);
+    state.image1 = null;
+    state.image2 = null;
+    state.fileName1 = "Image 1";
+    state.fileName2 = "Image 2";
+    state.lastReport = "";
+    file1.value = "";
+    file2.value = "";
+    ids("name1").textContent = "No image loaded";
+    ids("name2").textContent = "No image loaded";
+    clearCanvas(ids("preview1"));
+    clearCanvas(ids("preview2"));
+    clearCanvas(ids("qc1"));
+    clearCanvas(ids("qc2"));
+    copyBtn.disabled = true;
+    exportBtn.disabled = true;
+    resetResultText();
+    setStatus("Load or capture two images, then press Calculate.");
+  }
+
+  function resetResultText() {
+    const fields = [
+      "overall1", "overall2", "overallDiff", "overallDirection",
+      "weakMean1", "weakMean2", "weakDiff", "weakArea1", "weakArea2", "weakAreaDelta", "weakDirection",
+      "moderateMean1", "moderateMean2", "moderateDiff", "moderateArea1", "moderateArea2", "moderateAreaDelta", "moderateDirection",
+      "strongMean1", "strongMean2", "strongDiff", "strongArea1", "strongArea2", "strongAreaDelta", "strongDirection"
+    ];
+    fields.forEach(id => ids(id).textContent = "--");
+    ids("greatestBucket").textContent = "Greatest bucket-level intensity difference: --";
+    ids("greatestAreaChange").textContent = "Most significant percentage-area change: --";
+  }
+
+  function clearCanvas(canvas) {
+    const ctx = canvas.getContext("2d");
+    canvas.width = 1;
+    canvas.height = 1;
+    ctx.clearRect(0, 0, 1, 1);
+  }
+
+  function setStatus(msg) { ids("statusBox").textContent = msg; }
+
+  function mean(arr) {
+    if (!arr || !arr.length) return null;
+    let s = 0;
+    for (const v of arr) s += v;
+    return s / arr.length;
+  }
+
+  function percentile(sorted, p) {
+    if (!sorted.length) return 0;
+    const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor(p * (sorted.length - 1))));
+    return sorted[idx];
+  }
+
+  function percentDifference(a, b) {
+    const avg = (Math.abs(a) + Math.abs(b)) / 2;
+    if (avg === 0) return 0;
+    return (Math.abs(b - a) / avg) * 100;
+  }
+
+  function percentDifferenceNullable(a, b) {
+    if (a === null || b === null || !isFinite(a) || !isFinite(b)) return null;
+    return percentDifference(a, b);
+  }
+
+  function direction(a, b) {
+    const eps = 1e-9;
+    if (Math.abs(b - a) < eps) return "similar";
+    return b > a ? "darker / stronger" : "lighter / weaker";
+  }
+
+  function directionNullable(a, b) {
+    if (a === null || b === null || !isFinite(a) || !isFinite(b)) return "not available";
+    return direction(a, b);
+  }
+
+  function fmt(x) {
+    if (x === null || !isFinite(x)) return "--";
+    return Number(x).toFixed(3);
+  }
+
+  function fmtNullable(x) { return fmt(x); }
+
+  function fmtPct(x) {
+    if (x === null || !isFinite(x)) return "--";
+    return Number(x).toFixed(1) + "%";
+  }
+
+  function fmtPctNullable(x) { return fmtPct(x); }
+
+  function signedPct(x) {
+    if (x === null || !isFinite(x)) return "--";
+    const sign = x > 0 ? "+" : "";
+    return sign + Number(x).toFixed(1) + "%";
+  }
+
+  function max3(a, b, c) { return Math.max(a, Math.max(b, c)); }
+  function min3(a, b, c) { return Math.min(a, Math.min(b, c)); }
+})();
+</script>
+</body>
+</html>
